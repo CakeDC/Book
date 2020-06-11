@@ -1,0 +1,24 @@
+{
+    "name": "cakedc/cakephp-book",
+    "description": "CakeDC/Book plugin for CakePHP",
+    "type": "cakephp-plugin",
+    "license": "MIT",
+    "require": {
+        "cakephp/cakephp": "^3.5",
+        "html2text/html2text": "^4.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.7.14|^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CakeDC\\Book\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CakeDC\\Book\\Test\\": "tests/",
+            "Cake\\Test\\": "vendor/cakephp/cakephp/tests/"
+        }
+    }
+}
