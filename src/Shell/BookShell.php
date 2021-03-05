@@ -1,6 +1,8 @@
 <?php
+
 namespace CakeDC\Book\Shell;
 
+use Aura\Intl\Exception;
 use Cake\Cache\Cache;
 use Cake\Console\Shell;
 use Cake\Core\Configure;
@@ -33,75 +35,78 @@ class BookShell extends Shell
     public function main()
     {
         $query = urlencode(implode(' ', $this->args));
-        $version = substr(Configure::version(), 0, 1);
-        $Client = new Client();
-        $results = json_decode($Client->get("https://search.cakephp.org/search?lang=en&q=$query&version={$version}0")->getStringBody(), true);
+        $version = $this->getVersion();
+        $this->client = new Client();
+        $results = json_decode($this->client->get("https://search.cakephp.org/search?lang=en&q=$query&version={$version}0")->getStringBody(), true);
         //$results = Cache::read('book.' . $query, 'book');
+
+        if ($this->isFifoOutput()) {
+            $this->echoAllResults($results['data'] ?? []);
+            return 0;
+        }
+
         $options = [];
-        $baseUrl = "https://book.cakephp.org/$version/{0}";
         foreach ($results['data'] as $index => $result) {
             $options[$index] = $index + 1;
             $this->success("[{$options[$index]}]", false);
             $this->info(__(' {1}:', $options[$index], $result['title']), false);
             $this->out(str_replace("\n", ". ", $result['contents'][0]));
-            $this->out(__('   ' . $baseUrl, $result['url']));
+            $this->out(__('   ' . $this->getUrl($result)));
 
         }
         $count = count($results['data']);
+
         do {
             $topic = $this->in(__('Please select the topic that you want to read [1-{0}]', $count));
         } while (!is_numeric($topic) || (is_numeric($topic) && empty($results['data'][$topic - 1]['url'])));
 
+        $result = $results['data'][$topic - 1];
+        $this->out($this->getContent($result));
+        $this->out($this->getUrl($result));
+    }
 
+    protected function getContent($result): string
+    {
+        $version = $this->getVersion();
+        $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs/$version.x/{0}";
 
-        $url = __($baseUrl, $results['data'][$topic - 1]['url']);
+        $githubUrl = __($baseGithubUrl, substr($result['url'], 0, -4) . 'rst');
+        return $this->client->get($githubUrl)->getStringBody();
+    }
 
-        $html = $Client->get($url)->getStringBody();
-        $this->params['force'] = true;
-        $html = substr($html,strpos($html, '<div class="document-body">'));
-        $html = substr($html, 0, strpos($html, '<nav>
-                    <ul class="pagination">'));
+    protected function getVersion(): string
+    {
+        return substr(Configure::version(), 0, 1);
+    }
 
-        $html2TextConverter = new \Html2Text\Html2Text($html);
-        if (file_exists(TMP . 'query.txt')) {
-            unlink(TMP . 'query.txt');
-        }
-        file_put_contents(TMP . 'query.txt', $html2TextConverter->getText());
-        $dspec = array(
-            array('pipe', 'r'), // pipe to child process's stdin
-            array('pipe', 'w'), // pipe from child process's stdout
-            array('file', 'error_log', 'a'), // stderr dumped to file
-        );
-        // run the external command
-        $proc = proc_open('less ' . TMP . 'query.txt', $dspec, $pipes, null, null);
-        $init = true;
-        if (is_resource($proc)) {
-            while ($init || ($cmd = readline('')) != 'q') {
-                if ($init) {
-                    $init = false;
-                } else {
-                    fwrite($pipes[0], $cmd);
-                }
-                // if the external command expects input, it will get it from us here
-
-                fflush($pipes[0]);
-                // we can get the response from the external command here
-                $next = fread($pipes[1], 1024);
-                if (!empty($next)) {
-                    $this->out($next);
-                } else {
-                    $this->info("(END) Press q to exit");
-                }
-
+    protected function echoAllResults($results): void
+    {
+        $limit = 10;
+        $i = 0;
+        try {
+            for ($i = 0; $i < count($results) && $i < $limit; $i++) {
+                $this->out(__('From page: ' . $this->getUrl($results[$i])));
+                $this->out($this->getContent($results[$i]));
             }
-            fclose($pipes[0]);
-            fclose($pipes[1]);
-            proc_close($proc);
+        } catch (\Exception $ex) {
+            // ignore broken pipes
         }
+    }
 
-        if (file_exists(TMP . 'query.txt')) {
-            //unlink(TMP . 'query.txt');
-        }
+    protected function getUrl(array $result): string
+    {
+        $version = $this->getVersion();
+        $baseUrl = "https://book.cakephp.org/$version/{0}";
 
+        return __($baseUrl, $result['url']);
+    }
+
+    protected function isFifoOutput(): bool
+    {
+        // code from https://stackoverflow.com/questions/11327367/detect-if-a-php-script-is-being-run-interactively-or-not
+        $stat = fstat(STDOUT);
+        $mode = $stat['mode'] & 0170000; // S_IFMT
+
+        return $mode == 0010000;
     }
 }
