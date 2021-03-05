@@ -2,8 +2,6 @@
 
 namespace CakeDC\Book\Shell;
 
-use Aura\Intl\Exception;
-use Cake\Cache\Cache;
 use Cake\Console\Shell;
 use Cake\Core\Configure;
 use Cake\Http\Client;
@@ -17,7 +15,6 @@ class BookShell extends Shell
      * Manage the available sub-commands along with their arguments and help
      *
      * @see http://book.cakephp.org/3.0/en/console-and-shells.html#configuring-options-and-generating-help
-     *
      * @return \Cake\Console\ConsoleOptionParser
      */
     public function getOptionParser()
@@ -42,6 +39,7 @@ class BookShell extends Shell
 
         if ($this->isFifoOutput()) {
             $this->echoAllResults($results['data'] ?? []);
+
             return 0;
         }
 
@@ -50,9 +48,8 @@ class BookShell extends Shell
             $options[$index] = $index + 1;
             $this->success("[{$options[$index]}]", false);
             $this->info(__(' {1}:', $options[$index], $result['title']), false);
-            $this->out(str_replace("\n", ". ", $result['contents'][0]));
+            $this->out(str_replace("\n", '. ', $result['contents'][0]));
             $this->out(__('   ' . $this->getUrl($result)));
-
         }
         $count = count($results['data']);
 
@@ -71,6 +68,7 @@ class BookShell extends Shell
         $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs/$version.x/{0}";
 
         $githubUrl = __($baseGithubUrl, substr($result['url'], 0, -4) . 'rst');
+
         return $this->client->get($githubUrl)->getStringBody();
     }
 
