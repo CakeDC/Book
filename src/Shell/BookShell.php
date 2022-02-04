@@ -34,7 +34,7 @@ class BookShell extends Shell
         $query = urlencode(implode(' ', $this->args));
         $version = $this->getVersion();
         $this->client = new Client();
-        $results = json_decode($this->client->get("https://search.cakephp.org/search?lang=en&q=$query&version={$version}0")->getStringBody(), true);
+        $results = json_decode((string)$this->client->get("https://search.cakephp.org/search?lang=en&q=$query&version={$version}")->getBody(), true);
         //$results = Cache::read('book.' . $query, 'book');
 
         if ($this->isFifoOutput()) {
@@ -48,7 +48,7 @@ class BookShell extends Shell
             $options[$index] = $index + 1;
             $this->success("[{$options[$index]}]", false);
             $this->info(__(' {1}:', $options[$index], $result['title']), false);
-            $this->out(str_replace("\n", '. ', $result['contents'][0]));
+            $this->out(str_replace("\n", '. ', $result['contents'][0] ?? 'N/A'));
             $this->out(__('   ' . $this->getUrl($result)));
         }
         $count = count($results['data']);
@@ -65,11 +65,11 @@ class BookShell extends Shell
     protected function getContent($result): string
     {
         $version = $this->getVersion();
-        $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs/$version.x/{0}";
+        $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs{0}";
 
-        $githubUrl = __($baseGithubUrl, substr($result['url'], 0, -4) . 'rst');
+        $githubUrl = __($baseGithubUrl, substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst');
 
-        return $this->client->get($githubUrl)->getStringBody();
+        return (string)$this->client->get($githubUrl)->getBody();
     }
 
     protected function getVersion(): string
@@ -94,8 +94,7 @@ class BookShell extends Shell
     protected function getUrl(array $result): string
     {
         $version = $this->getVersion();
-        $baseUrl = "https://book.cakephp.org/$version/{0}";
-
+        $baseUrl = "https://book.cakephp.org{0}";
         return __($baseUrl, $result['url']);
     }
 
