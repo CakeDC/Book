@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * Copyright 2020 - 2022, Cake Development Corporation (https://www.cakedc.com)
+ *
+ * Licensed under The MIT License
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright Copyright 2013 - 2018, Cake Development Corporation (https://www.cakedc.com)
+ * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
+ */
+
 namespace CakeDC\Book\Shell;
 
 use Cake\Console\Shell;
@@ -21,7 +31,7 @@ class BookShell extends Shell
     {
         $parser = parent::getOptionParser();
 
-        $parser->addArgument('parameters', ['help' => 'Search parameters', 'required' => false]);
+        $parser->addArgument('parameter', ['help' => 'Search parameter', 'required' => true]);
 
         return $parser;
     }
