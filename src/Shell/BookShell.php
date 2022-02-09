@@ -21,6 +21,8 @@ class BookShell extends Shell
     {
         $parser = parent::getOptionParser();
 
+        $parser->addArgument('parameters', ['help' => 'Search parameters', 'required' => false]);
+
         return $parser;
     }
 
@@ -43,6 +45,13 @@ class BookShell extends Shell
             return 0;
         }
 
+        $count = count($results['data']);
+        if ($count == 0) {
+            $this->out(__('  No results found!'));
+
+            return 1;
+        }
+
         $options = [];
         foreach ($results['data'] as $index => $result) {
             $options[$index] = $index + 1;
@@ -51,7 +60,6 @@ class BookShell extends Shell
             $this->out(str_replace("\n", '. ', $result['contents'][0] ?? 'N/A'));
             $this->out(__('   ' . $this->getUrl($result)));
         }
-        $count = count($results['data']);
 
         do {
             $topic = $this->in(__('Please select the topic that you want to read [1-{0}]', $count));
