@@ -1,4 +1,15 @@
 <?php
+
+/**
+ * Copyright 2020 - 2022, Cake Development Corporation (https://www.cakedc.com)
+ *
+ * Licensed under The MIT License
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright Copyright 2020 - 2022, Cake Development Corporation (https://www.cakedc.com)
+ * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
+ */
+
 namespace CakeDC\Book\Command;
 
 use Cake\Console\Arguments;
@@ -16,15 +27,13 @@ class BookCommand extends Command
     /**
      * Hook method for defining this command's option parser.
      *
-     * @see https://book.cakephp.org/3.0/en/console-and-shells/commands.html#defining-arguments-and-options
+     * @see https://book.cakephp.org/4/en/console-commands/option-parsers.html
      *
      * @param \Cake\Console\ConsoleOptionParser $parser The parser to be defined
      * @return \Cake\Console\ConsoleOptionParser The built parser.
      */
-    public function buildOptionParser(ConsoleOptionParser $parser)
+    protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
-        $parser = parent::buildOptionParser($parser);
-
         $parser->addArgument('parameter', ['help' => 'Search parameter', 'required' => true]);
 
         return $parser;
