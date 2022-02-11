@@ -6,7 +6,7 @@ cakephp-book allows you to search in the official CakePHP documentation directly
 Requirements
 ------------
 
-- CakePHP 3.5+
+- CakePHP 4.0+
 - PHP 7.2+
 
 Installation
