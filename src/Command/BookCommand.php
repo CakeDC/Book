@@ -29,6 +29,12 @@ class BookCommand extends Command
     protected const OPTION_NEXT_PAGE = ['n', 'N'];
     protected const OPTION_PREVIOUS_PAGE = ['p', 'P'];
 
+    protected const LANG_EN = 'en';
+
+    protected const URL_API_SEARCH = 'https://search.cakephp.org/search?{0}';
+    protected const URL_BASE_TOPIC = 'https://book.cakephp.org{0}';
+    protected const URL_BASE_GITHUB = 'https://raw.githubusercontent.com/cakephp/docs{0}';
+
     /**
      * Hook method for defining this command's option parser.
      *
@@ -138,9 +144,15 @@ class BookCommand extends Command
     protected function getIndex(string $query, string $cakeVersion, int $page = 1) : ?array
     {
         $this->client = new Client();
-        $url = "https://search.cakephp.org/search?lang=en&q=$query&version={$cakeVersion}&page={$page}";
+        $url = __(self::URL_API_SEARCH,
+            http_build_query([
+                'q' => $query,
+                'version' => $cakeVersion,
+                'page' => $page,
+                'lang' => self::LANG_EN,
+            ])
+        );
         $results = json_decode((string)$this->client->get($url)->getBody(), true);
-        //$results = Cache::read('book.' . $query, 'book');
 
         return $results;
     }
@@ -191,9 +203,9 @@ class BookCommand extends Command
     protected function getContent(array $result): string
     {
         $version = $this->getVersion();
-        $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs{0}";
+        
 
-        $githubUrl = __($baseGithubUrl, substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst');
+        $githubUrl = __(self::URL_BASE_GITHUB, substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst');
 
         return (string)$this->client->get($githubUrl)->getBody();
     }
@@ -231,9 +243,8 @@ class BookCommand extends Command
      */
     protected function getUrl(array $result): string
     {
-        $version = $this->getVersion();
-        $baseUrl = "https://book.cakephp.org{0}";
-        return __($baseUrl, $result['url']);
+        
+        return __(self::URL_BASE_TOPIC, $result['url']);
     }
 
     /**
