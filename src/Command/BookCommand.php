@@ -31,9 +31,9 @@ class BookCommand extends Command
 
     protected const LANG_EN = 'en';
 
-    protected const URL_API_SEARCH = 'https://search.cakephp.org/search?{0}';
-    protected const URL_BASE_TOPIC = 'https://book.cakephp.org{0}';
-    protected const URL_BASE_GITHUB = 'https://raw.githubusercontent.com/cakephp/docs{0}';
+    protected const URL_API_SEARCH = 'https://search.cakephp.org/search?%s';
+    protected const URL_BASE_TOPIC = 'https://book.cakephp.org%s';
+    protected const URL_BASE_GITHUB = 'https://raw.githubusercontent.com/cakephp/docs%s';
 
     /**
      * Hook method for defining this command's option parser.
@@ -144,7 +144,7 @@ class BookCommand extends Command
     protected function getIndex(string $query, string $cakeVersion, int $page = 1) : ?array
     {
         $this->client = new Client();
-        $url = __(self::URL_API_SEARCH,
+        $url = sprintf(self::URL_API_SEARCH,
             http_build_query([
                 'q' => $query,
                 'version' => $cakeVersion,
@@ -205,7 +205,10 @@ class BookCommand extends Command
         $version = $this->getVersion();
         
 
-        $githubUrl = __(self::URL_BASE_GITHUB, substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst');
+        $githubUrl = sprintf(
+            self::URL_BASE_GITHUB,
+            substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst'
+        );
 
         return (string)$this->client->get($githubUrl)->getBody();
     }
@@ -244,7 +247,7 @@ class BookCommand extends Command
     protected function getUrl(array $result): string
     {
         
-        return __(self::URL_BASE_TOPIC, $result['url']);
+        return sprintf(self::URL_BASE_TOPIC, $result['url']);
     }
 
     /**
