@@ -72,6 +72,8 @@ class BookCommand extends Command
         $query = $args->getArgument('parameter');
         $cakeVersion = $args->getOption('cakephp-version') ?? $this->getVersion();
         $page = 1;
+        $results = [];
+        $topic = 0;
 
         do {
             $results = $this->getIndex($query, $cakeVersion, $page);
@@ -246,7 +248,10 @@ class BookCommand extends Command
      */
     protected function getUrl(array $result): string
     {
-        
+        if (empty($result['url'])) {
+            return '';
+        }
+
         return sprintf(self::URL_BASE_TOPIC, $result['url']);
     }
 
