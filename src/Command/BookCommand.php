@@ -24,6 +24,17 @@ use Cake\Http\Client;
  */
 class BookCommand extends Command
 {
+    protected const PAGE_LIMT = 25;
+    protected const OPTION_QUIT = ['q', 'Q'];
+    protected const OPTION_NEXT_PAGE = ['n', 'N'];
+    protected const OPTION_PREVIOUS_PAGE = ['p', 'P'];
+
+    protected const LANG_EN = 'en';
+
+    protected const URL_API_SEARCH = 'https://search.cakephp.org/search?%s';
+    protected const URL_BASE_TOPIC = 'https://book.cakephp.org%s';
+    protected const URL_BASE_GITHUB = 'https://raw.githubusercontent.com/cakephp/docs%s';
+
     /**
      * Hook method for defining this command's option parser.
      *
@@ -34,7 +45,17 @@ class BookCommand extends Command
      */
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
-        $parser->addArgument('parameter', ['help' => 'Search parameter', 'required' => true]);
+        $parser->addArgument('parameter', [
+            'help' => __('Parameter to search'),
+            'required' => true,
+        ]);
+
+        $parser->addOption('cakephp-version', [
+            'help' => __('CakePHP version to search'),
+            'short' => 'c',
+            'choices' => ['3', '4'],
+            'default' => $this->getVersion(),
+        ]);
 
         return $parser;
     }
@@ -49,58 +70,165 @@ class BookCommand extends Command
     public function execute(Arguments $args, ConsoleIo $io)
     {
         $query = $args->getArgument('parameter');
-        $version = $this->getVersion();
-        $this->client = new Client();
-        $results = json_decode((string)$this->client->get("https://search.cakephp.org/search?lang=en&q=$query&version={$version}")->getBody(), true);
-        //$results = Cache::read('book.' . $query, 'book');
-
-        if ($this->isFifoOutput()) {
-            $this->echoAllResults($results['data'] ?? [], $io);
-
-            return 0;
-        }
-
-        $count = count($results['data']);
-        if ($count == 0) {
-            $io->err(__('  No results found!'));
-
-            return 1;
-        }
-
-        $options = [];
-        foreach ($results['data'] as $index => $result) {
-            $options[$index] = $index + 1;
-            $io->success("[{$options[$index]}]", false);
-            $io->info(__(' {1}:', $options[$index], $result['title']), false);
-            $io->out(str_replace("\n", '. ', $result['contents'][0] ?? 'N/A'));
-            $io->out(__('   ' . $this->getUrl($result)));
-        }
+        $cakeVersion = $args->getOption('cakephp-version') ?? $this->getVersion();
+        $page = 1;
+        $results = [];
+        $topic = 0;
 
         do {
-            $topic = $io->ask(__('Please select the topic that you want to read [1-{0}]', $count));
-        } while (!is_numeric($topic) || (is_numeric($topic) && empty($results['data'][$topic - 1]['url'])));
+            $results = $this->getIndex($query, $cakeVersion, $page);
+
+            $count = count($results['data']);
+            if ($count == 0) {
+                $io->err(__('  No results found!'));
+    
+                return 1;
+            }
+
+            if ($this->isFifoOutput()) {
+                $this->echoAllResults($results['data'] ?? [], $io);
+    
+                return 0;
+            }
+
+            $this->showIndex($results, $io);
+
+            if ($this->hasPreviousPage($results)) {
+                $io->success(__('[{0}]', self::OPTION_PREVIOUS_PAGE[0]), false);
+                $io->info(__(' Go to page {0}', $page - 1));
+            }
+
+            if ($this->hasNextPage($results, self::PAGE_LIMT)) {
+                $io->success(__('[{0}]', self::OPTION_NEXT_PAGE[0]), false);
+                $io->info(__(' Go to page {0}', $page + 1));
+            }
+            
+            $io->success(__('[{0}]', self::OPTION_QUIT[0]), false);
+            $io->info(__(' Quit'));
+
+            do {
+                $topic = $io->ask(__('Please select the topic that you want to read [1-{0}]', $count));
+
+                if (in_array($topic, self::OPTION_PREVIOUS_PAGE) && $this->hasPreviousPage($results)) {
+                    $page--;
+                    break;
+                }
+
+                if (in_array($topic, self::OPTION_NEXT_PAGE) && $this->hasNextPage($results, self::PAGE_LIMT)) {
+                    $page++;
+                    break;
+                }
+
+                if (in_array($topic, self::OPTION_QUIT)) {
+                    return 0;
+                }
+
+                if (is_numeric($topic) && !empty($results['data'][$topic - 1]['url'])) {
+                    break 2;
+                }
+
+            } while (true);
+        } while(true);
 
         $result = $results['data'][$topic - 1];
         $io->out($this->getContent($result));
         $io->out($this->getUrl($result));
+
+        return 0;
     }
 
-    protected function getContent($result): string
+    /**
+     * @param string $query
+     * @param string $cakeVersion
+     * @param integer $page
+     * @return array|null
+     */
+    protected function getIndex(string $query, string $cakeVersion, int $page = 1) : ?array
+    {
+        $this->client = new Client();
+        $url = sprintf(self::URL_API_SEARCH,
+            http_build_query([
+                'q' => $query,
+                'version' => $cakeVersion,
+                'page' => $page,
+                'lang' => self::LANG_EN,
+            ])
+        );
+        $results = json_decode((string)$this->client->get($url)->getBody(), true);
+
+        return $results;
+    }
+
+    /**
+     * @param array $results
+     * @param ConsoleIo $io
+     * @return void
+     */
+    protected function showIndex(array $results, ConsoleIo $io): void
+    {
+        $io->info(__('Page {0}', $results['page']));
+        $options = [];
+        foreach ($results['data'] as $index => $result) {
+            $options[$index] = $index + 1;
+            $io->success("[{$options[$index]}]", false);
+            $io->info(__(' {1}: ', $options[$index], $result['title']), false);
+            $io->out(str_replace("\n", '. ', $result['contents'][0] ?? 'N/A'));
+            $io->out(__('   ' . $this->getUrl($result)));
+        }
+    }
+
+    /**
+     * @param array $results
+     * @param integer $limitPage
+     * @return boolean
+     */
+    protected function hasNextPage(array $results, int $limitPage): bool
+    {
+        $currentPage = $results['page'];
+        $totalRecords = $results['total'];
+        $totalPages = ceil($totalRecords / $limitPage);
+
+        return $currentPage < $totalPages;
+    }
+
+    protected function hasPreviousPage(array $results): bool
+    {
+        $currentPage = $results['page'];
+
+        return $currentPage > 1;
+    }
+
+    /**
+     * @param array $result
+     * @return string
+     */
+    protected function getContent(array $result): string
     {
         $version = $this->getVersion();
-        $baseGithubUrl = "https://raw.githubusercontent.com/cakephp/docs{0}";
+        
 
-        $githubUrl = __($baseGithubUrl, substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst');
+        $githubUrl = sprintf(
+            self::URL_BASE_GITHUB,
+            substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst'
+        );
 
         return (string)$this->client->get($githubUrl)->getBody();
     }
 
+    /**
+     * @return string
+     */
     protected function getVersion(): string
     {
         return substr(Configure::version(), 0, 1);
     }
 
-    protected function echoAllResults($results, ConsoleIo $io): void
+    /**
+     * @param array $results
+     * @param ConsoleIo $io
+     * @return void
+     */
+    protected function echoAllResults(array $results, ConsoleIo $io): void
     {
         $limit = 10;
         $i = 0;
@@ -114,13 +242,22 @@ class BookCommand extends Command
         }
     }
 
+    /**
+     * @param array $result
+     * @return string
+     */
     protected function getUrl(array $result): string
     {
-        $version = $this->getVersion();
-        $baseUrl = "https://book.cakephp.org{0}";
-        return __($baseUrl, $result['url']);
+        if (empty($result['url'])) {
+            return '';
+        }
+
+        return sprintf(self::URL_BASE_TOPIC, $result['url']);
     }
 
+    /**
+     * @return boolean
+     */
     protected function isFifoOutput(): bool
     {
         // code from https://stackoverflow.com/questions/11327367/detect-if-a-php-script-is-being-run-interactively-or-not
