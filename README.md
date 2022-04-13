@@ -6,9 +6,37 @@ book.cakephp.org search served directly at your console.
 
 ## Installation
 
+Into an existing project
+
 ```
 composer require cakedc/cakephp-book
 bin/cake plugin load CakeDC/Book
+```
+
+Globally in your dev environment
+
+```
+# pick a location for the new repo, for example /var/virtual
+composer create-project cakephp/app book
+cd book
+bin/cake plugin load CakeDC/Book
+```
+
+Then add an alias to your shell environment, for example this one if valid for zsh:
+
+```
+# edit your ~/.zshrc file, add at the end
+function b () {
+    php8.0 /var/virtual/book/bin/cake.php book "$*"
+}
+```
+
+Note you'll need to tweak your php version and the target directory where you installed the book.
+
+Now open a new console or refresh your environment and you'll get a very convenient alias for 
+
+```
+$ b model aftersave
 ```
 
 ## Usage
