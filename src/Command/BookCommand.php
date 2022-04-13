@@ -18,6 +18,7 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Http\Client;
+use Cake\Utility\Inflector;
 
 /**
  * Book command.
@@ -81,13 +82,13 @@ class BookCommand extends Command
             $count = count($results['data']);
             if ($count == 0) {
                 $io->err(__('  No results found!'));
-    
+
                 return 1;
             }
 
             if ($this->isFifoOutput()) {
                 $this->echoAllResults($results['data'] ?? [], $io);
-    
+
                 return 0;
             }
 
@@ -102,7 +103,7 @@ class BookCommand extends Command
                 $io->success(__('[{0}]', self::OPTION_NEXT_PAGE[0]), false);
                 $io->info(__(' Go to page {0}', $page + 1));
             }
-            
+
             $io->success(__('[{0}]', self::OPTION_QUIT[0]), false);
             $io->info(__(' Quit'));
 
@@ -171,8 +172,8 @@ class BookCommand extends Command
         foreach ($results['data'] as $index => $result) {
             $options[$index] = $index + 1;
             $io->success("[{$options[$index]}]", false);
-            $io->info(__(' {1}: ', $options[$index], $result['title']), false);
-            $io->out(str_replace("\n", '. ', $result['contents'][0] ?? 'N/A'));
+            $io->info(__(' {1}: ', $options[$index], $result['hierarchy'][count($result['hierarchy']) - 1]), false);
+            $io->out(str_replace("\n", '. ', $result['contents'] ?? 'N/A'));
             $io->out(__('   ' . $this->getUrl($result)));
         }
     }
@@ -205,14 +206,14 @@ class BookCommand extends Command
     protected function getContent(array $result): string
     {
         $version = $this->getVersion();
-        
 
         $githubUrl = sprintf(
             self::URL_BASE_GITHUB,
-            substr(str_replace("/$version", "/$version.x", $result['url']), 0, -4) . 'rst'
+            str_replace(["/$version", '.html'], ["/$version.x", '.rst'], $result['url'])
         );
+        $body = (string)$this->client->get($githubUrl)->getBody();
 
-        return (string)$this->client->get($githubUrl)->getBody();
+        return $body;
     }
 
     /**
