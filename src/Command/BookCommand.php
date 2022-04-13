@@ -212,7 +212,16 @@ class BookCommand extends Command
             str_replace(["/$version", '.html'], ["/$version.x", '.rst'], $result['url'])
         );
         $body = (string)$this->client->get($githubUrl)->getBody();
-
+        $hash = strpos($result['url'], '#');
+        if ($hash !== false &&
+            ($subtitlePos = strpos(strtolower($body), strtolower(Inflector::humanize(substr($result['url'], $hash + 1), '-')))) !== false) {
+            $section = substr($body, $subtitlePos);
+            $nextSubtitlePos = strpos($section, '====');
+            if ($nextSubtitlePos !== false) {
+                $section = substr($section, 0, strlen($section) - $nextSubtitlePos);
+                $body = $section;
+            }
+        }
         return $body;
     }
 
