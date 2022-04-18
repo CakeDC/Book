@@ -18,14 +18,13 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Http\Client;
-use Cake\Utility\Inflector;
 
 /**
  * Book command.
  */
 class BookCommand extends Command
 {
-    protected const PAGE_LIMT = 25;
+    protected const PAGE_LIMT = 10;
     protected const OPTION_QUIT = ['q', 'Q'];
     protected const OPTION_NEXT_PAGE = ['n', 'N'];
     protected const OPTION_PREVIOUS_PAGE = ['p', 'P'];
@@ -58,6 +57,12 @@ class BookCommand extends Command
             'default' => $this->getVersion(),
         ]);
 
+        $parser->addOption('limit', [
+            'help' => __('Results limit'),
+            'short' => 'l',
+            'default' => self::PAGE_LIMT,
+        ]);
+
         return $parser;
     }
 
@@ -72,12 +77,13 @@ class BookCommand extends Command
     {
         $query = $args->getArgument('parameter');
         $cakeVersion = $args->getOption('cakephp-version') ?? $this->getVersion();
+        $limit = (int) $args->getOption('limit') ?? self::PAGE_LIMT;
         $page = 1;
         $results = [];
         $topic = 0;
 
         do {
-            $results = $this->getIndex($query, $cakeVersion, $page);
+            $results = $this->getIndex($query, $cakeVersion, $limit, $page);
 
             $count = count($results['data']);
             if ($count == 0) {
@@ -144,7 +150,7 @@ class BookCommand extends Command
      * @param integer $page
      * @return array|null
      */
-    protected function getIndex(string $query, string $cakeVersion, int $page = 1) : ?array
+    protected function getIndex(string $query, string $cakeVersion, int $limit = self::PAGE_LIMT, int $page = 1) : ?array
     {
         $this->client = new Client();
         $url = sprintf(self::URL_API_SEARCH,
@@ -153,6 +159,7 @@ class BookCommand extends Command
                 'version' => $cakeVersion,
                 'page' => $page,
                 'lang' => self::LANG_EN,
+                'limit' => $limit,
             ])
         );
         $results = json_decode((string)$this->client->get($url)->getBody(), true);
