@@ -54,7 +54,7 @@ class BookCommand extends Command
         $parser->addOption('cakephp-version', [
             'help' => __('CakePHP version to search'),
             'short' => 'c',
-            'choices' => ['3', '4'],
+            'choices' => ['3', '4', '5'],
             'default' => $this->getVersion(),
         ]);
 
