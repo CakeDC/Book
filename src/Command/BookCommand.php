@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /**
  * Copyright 2020 - 2022, Cake Development Corporation (https://www.cakedc.com)
@@ -18,7 +19,6 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Http\Client;
-use Cake\Utility\Inflector;
 
 /**
  * Book command.
@@ -40,7 +40,6 @@ class BookCommand extends Command
      * Hook method for defining this command's option parser.
      *
      * @see https://book.cakephp.org/4/en/console-commands/option-parsers.html
-     *
      * @param \Cake\Console\ConsoleOptionParser $parser The parser to be defined
      * @return \Cake\Console\ConsoleOptionParser The built parser.
      */
@@ -127,9 +126,8 @@ class BookCommand extends Command
                 if (is_numeric($topic) && !empty($results['data'][$topic - 1]['url'])) {
                     break 2;
                 }
-
             } while (true);
-        } while(true);
+        } while (true);
 
         $result = $results['data'][$topic - 1];
         $io->out($this->getContent($result));
@@ -141,13 +139,14 @@ class BookCommand extends Command
     /**
      * @param string $query
      * @param string $cakeVersion
-     * @param integer $page
+     * @param int $page
      * @return array|null
      */
-    protected function getIndex(string $query, string $cakeVersion, int $page = 1) : ?array
+    protected function getIndex(string $query, string $cakeVersion, int $page = 1): ?array
     {
         $this->client = new Client();
-        $url = sprintf(self::URL_API_SEARCH,
+        $url = sprintf(
+            self::URL_API_SEARCH,
             http_build_query([
                 'q' => $query,
                 'version' => $cakeVersion,
@@ -162,7 +161,7 @@ class BookCommand extends Command
 
     /**
      * @param array $results
-     * @param ConsoleIo $io
+     * @param \Cake\Console\ConsoleIo $io
      * @return void
      */
     protected function showIndex(array $results, ConsoleIo $io): void
@@ -180,8 +179,8 @@ class BookCommand extends Command
 
     /**
      * @param array $results
-     * @param integer $limitPage
-     * @return boolean
+     * @param int $limitPage
+     * @return bool
      */
     protected function hasNextPage(array $results, int $limitPage): bool
     {
@@ -226,7 +225,7 @@ class BookCommand extends Command
 
     /**
      * @param array $results
-     * @param ConsoleIo $io
+     * @param \Cake\Console\ConsoleIo $io
      * @return void
      */
     protected function echoAllResults(array $results, ConsoleIo $io): void
@@ -257,7 +256,7 @@ class BookCommand extends Command
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     protected function isFifoOutput(): bool
     {
