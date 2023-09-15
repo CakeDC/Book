@@ -94,16 +94,16 @@ class BookCommand extends Command
             $this->showIndex($results, $io);
 
             if ($this->hasPreviousPage($results)) {
-                $io->success(__('[{0}]', self::OPTION_PREVIOUS_PAGE[0]), false);
+                $io->success(__('[{0}]', self::OPTION_PREVIOUS_PAGE[0]), 0);
                 $io->info(__(' Go to page {0}', $page - 1));
             }
 
             if ($this->hasNextPage($results, self::PAGE_LIMT)) {
-                $io->success(__('[{0}]', self::OPTION_NEXT_PAGE[0]), false);
+                $io->success(__('[{0}]', self::OPTION_NEXT_PAGE[0]), 0);
                 $io->info(__(' Go to page {0}', $page + 1));
             }
 
-            $io->success(__('[{0}]', self::OPTION_QUIT[0]), false);
+            $io->success(__('[{0}]', self::OPTION_QUIT[0]), 0);
             $io->info(__(' Quit'));
 
             do {
@@ -170,8 +170,8 @@ class BookCommand extends Command
         $options = [];
         foreach ($results['data'] as $index => $result) {
             $options[$index] = $index + 1;
-            $io->success("[{$options[$index]}]", false);
-            $io->info(__(' {1}: ', $options[$index], $result['hierarchy'][count($result['hierarchy']) - 1]), false);
+            $io->success("[{$options[$index]}]", 0);
+            $io->info(__(' {1}: ', $options[$index], $result['hierarchy'][count($result['hierarchy']) - 1]), 0);
             $io->out(str_replace("\n", '. ', $result['contents'] ?? 'N/A'));
             $io->out(__('   ' . $this->getUrl($result)));
         }
